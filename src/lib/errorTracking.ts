@@ -42,15 +42,18 @@ interface SentryLike {
 }
 
 // Check if Sentry is available (will be after running the wizard)
+let _sentry: SentryLike | null | undefined;
 function getSentry(): SentryLike | null {
+  if (_sentry !== undefined) return _sentry;
   try {
-    // Dynamic import to avoid errors if Sentry isn't installed
+    // Use a variable to prevent Turbopack from statically resolving this
+    const mod = "@sentry/nextjs";
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const sentry = require("@sentry/nextjs");
-    return sentry as SentryLike;
+    _sentry = require(mod) as SentryLike;
   } catch {
-    return null;
+    _sentry = null;
   }
+  return _sentry;
 }
 
 /**
