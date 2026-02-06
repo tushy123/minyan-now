@@ -13,6 +13,7 @@ interface UseMinyanFiltersOptions {
   joinedSpaceIds: string[];
   origin: { lat: number; lng: number };
   initialTefillah?: TefillahKey;
+  selectedDate?: string;
 }
 
 export function useMinyanim({
@@ -20,6 +21,7 @@ export function useMinyanim({
   joinedSpaceIds,
   origin,
   initialTefillah = "mincha",
+  selectedDate,
 }: UseMinyanFiltersOptions) {
   const [officialMinyanim, setOfficialMinyanim] = useState<OfficialMinyan[]>([]);
   const [currentFilter, setCurrentFilter] = useState<TefillahKey>(initialTefillah);
@@ -32,9 +34,18 @@ export function useMinyanim({
     fetchOfficialMinyanim().then(setOfficialMinyanim);
   }, []);
 
+  // Filter spaces by selected date
+  const filteredSpacesByDate = useMemo(() => {
+    if (!selectedDate) return spaces;
+    return spaces.filter((space) => {
+      const spaceDate = new Date(space.start_time).toISOString().slice(0, 10);
+      return spaceDate === selectedDate;
+    });
+  }, [spaces, selectedDate]);
+
   // Transform spaces to UI format
   const uiSpaces = useMemo<UiSpace[]>(() => {
-    return spaces.map((space) => {
+    return filteredSpacesByDate.map((space) => {
       const startDate = new Date(space.start_time);
       const { distanceMiles, distanceLabel, etaLabel } = getDistanceInfo(
         space.lat,
@@ -60,7 +71,7 @@ export function useMinyanim({
         joined: joinedSpaceIds.includes(space.id),
       };
     });
-  }, [spaces, origin, joinedSpaceIds]);
+  }, [filteredSpacesByDate, origin, joinedSpaceIds]);
 
   // Transform official minyanim to UI format
   const uiSetMinyanim = useMemo<UiSet[]>(() => {

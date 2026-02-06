@@ -121,24 +121,17 @@ function buildFallbackState(): Pick<ZmanimState, "windows" | "labels" | "allZman
   };
 }
 
-export function useZmanim(origin?: { lat: number; lng: number }): ZmanimState {
+export function useZmanim(origin?: { lat: number; lng: number }, selectedDate?: string): ZmanimState {
   const lat = origin?.lat ?? DEFAULT_CENTER.lat;
   const lng = origin?.lng ?? DEFAULT_CENTER.lng;
   const tzid = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  const [date, setDate] = useState(() => getDateStringInTimeZone(tzid));
+  const date = selectedDate ?? getDateStringInTimeZone(tzid);
 
   const [state, setState] = useState<ZmanimState>(() => ({
     ...buildFallbackState(),
     loading: true,
     error: null,
   }));
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDate(getDateStringInTimeZone(tzid));
-    }, 60_000);
-    return () => clearInterval(interval);
-  }, [tzid]);
 
   useEffect(() => {
     let active = true;

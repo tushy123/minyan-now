@@ -15,6 +15,9 @@ import { useMinyanim } from "@/hooks/useMinyanim";
 import { useModals, useSelection } from "@/hooks/useModals";
 import { useShabbosMode } from "@/hooks/useShabbosMode";
 import { useMessages } from "@/hooks/useMessages";
+import { useTheme } from "@/hooks/useTheme";
+import { useFriends } from "@/hooks/useFriends";
+import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppHeader } from "@/components/AppHeader";
 import { ViewBar } from "@/components/ViewBar";
@@ -31,6 +34,7 @@ import { BottomNav, type NavTab } from "@/components/BottomNav";
 import { ZmanimModal } from "@/components/ZmanimModal";
 import { SettingsPage } from "@/components/SettingsPage";
 import { AlertsPage, type Alert } from "@/components/AlertsPage";
+import { FriendsPage } from "@/components/FriendsPage";
 
 export default function Home() {
   // ==================== Core Hooks ====================
@@ -59,8 +63,32 @@ export default function Home() {
   const { toasts, pushToast } = useToasts();
   const { location: userLocation, permissionState, requestLocation } = useLocation((message) => pushToast(message, "warning"));
   const origin = userLocation ?? DEFAULT_CENTER;
-  const { windows: zmanWindows, labels: zmanLabels, allZmanim } = useZmanim(origin);
+
+  // Date navigation state
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 10);
+  });
+
+  const { windows: zmanWindows, labels: zmanLabels, allZmanim } = useZmanim(origin, selectedDate);
   const isShabbos = useShabbosMode();
+  const { theme, setTheme } = useTheme();
+  const { onlineCount } = useOnlineUsers(session?.user?.id);
+  const {
+    friends,
+    pendingRequests,
+    sentRequests,
+    minyanInvites,
+    pendingCount: friendRequestCount,
+    sendRequest,
+    acceptRequest,
+    declineRequest,
+    unfriend,
+    search: searchUsers,
+    inviteToMinyan,
+    acceptMinyanInvite,
+    declineMinyanInvite,
+  } = useFriends(session?.user?.id);
   const [showShabbosBanner, setShowShabbosBanner] = useState(false);
 
   // Auto-select the current tefillah based on time
@@ -84,6 +112,7 @@ export default function Home() {
     joinedSpaceIds,
     origin,
     initialTefillah: autoTefillah,
+    selectedDate,
   });
 
   // ==================== Modal State ====================
@@ -103,32 +132,7 @@ export default function Home() {
   // ==================== View State ====================
   const [view, setView] = useState<"list" | "map">("list");
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
-  const [alerts, setAlerts] = useState<Alert[]>(() => [
-    {
-      id: "1",
-      type: "quorum",
-      title: "Minyan Reached!",
-      message: "The Mincha minyan at Nachlaot Beit Knesset now has 10 people.",
-      time: new Date(Date.now() - 1000 * 60 * 15),
-      read: false,
-    },
-    {
-      id: "2",
-      type: "reminder",
-      title: "Mincha in 15 minutes",
-      message: "Your joined minyan at 4 Bezalel St starts at 2:50 PM.",
-      time: new Date(Date.now() - 1000 * 60 * 60),
-      read: true,
-    },
-    {
-      id: "3",
-      type: "joined",
-      title: "New Member",
-      message: "Moshe K. joined your pop-up minyan.",
-      time: new Date(Date.now() - 1000 * 60 * 60 * 3),
-      read: true,
-    },
-  ]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const unreadAlertCount = useMemo(
     () => alerts.filter((alert) => !alert.read).length,
     [alerts]
@@ -365,6 +369,11 @@ export default function Home() {
           onZmanimClick={() => openModal("zmanim")}
           zmanSummary={zmanSummary}
           userInitials={session ? createInitials(profile?.full_name) : undefined}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          isToday={selectedDate === new Date().toISOString().slice(0, 10)}
+          onGoToToday={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
+          onlineCount={onlineCount}
         />
 
         <ViewBar
@@ -409,6 +418,7 @@ export default function Home() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           alertCount={unreadAlertCount}
+          friendRequestCount={friendRequestCount}
         />
 
         <SettingsPage
@@ -418,6 +428,8 @@ export default function Home() {
           onClose={() => setActiveTab("home")}
           onSignOut={handleSignOut}
           onSignIn={() => openModal("auth")}
+          theme={theme}
+          onThemeChange={setTheme}
         />
 
         <AlertsPage
@@ -425,6 +437,28 @@ export default function Home() {
           onClose={() => setActiveTab("home")}
           alerts={alerts}
           onMarkAllRead={handleMarkAllAlertsRead}
+        />
+
+        <FriendsPage
+          open={activeTab === "friends"}
+          friends={friends}
+          pendingRequests={pendingRequests}
+          sentRequests={sentRequests}
+          minyanInvites={minyanInvites}
+          onClose={() => setActiveTab("home")}
+          onAcceptRequest={acceptRequest}
+          onDeclineRequest={declineRequest}
+          onUnfriend={unfriend}
+          onSearch={searchUsers}
+          onSendRequest={sendRequest}
+          onAcceptInvite={acceptMinyanInvite}
+          onDeclineInvite={declineMinyanInvite}
+          onJoinSpace={(spaceId) => {
+            const space = spaces.find(s => s.id === spaceId);
+            if (space) {
+              handleJoinSpace(space as unknown as UiSpace);
+            }
+          }}
         />
 
         <MinyanPage

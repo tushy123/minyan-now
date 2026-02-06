@@ -1,13 +1,15 @@
-export type NavTab = "home" | "alerts" | "settings";
+export type NavTab = "home" | "friends" | "alerts" | "settings";
 
 export function BottomNav({
   activeTab,
   onTabChange,
   alertCount = 0,
+  friendRequestCount = 0,
 }: {
   activeTab: NavTab;
   onTabChange: (tab: NavTab) => void;
   alertCount?: number;
+  friendRequestCount?: number;
 }) {
   return (
     <nav className="bottom-nav" aria-label="Primary">
@@ -21,6 +23,22 @@ export function BottomNav({
           <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
         <span>Home</span>
+      </button>
+      <button
+        className={`nav-btn${activeTab === "friends" ? " active" : ""}`}
+        onClick={() => onTabChange("friends")}
+        aria-label="Friends"
+      >
+        <div className="nav-btn-icon-wrapper">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          {friendRequestCount > 0 && <span className="nav-btn-badge">{friendRequestCount}</span>}
+        </div>
+        <span>Friends</span>
       </button>
       <button
         className={`nav-btn${activeTab === "alerts" ? " active" : ""}`}

@@ -436,9 +436,177 @@ select * from (values
 ) as t(name, shul_name, tefillah, start_time, lat, lng, address, reliability, avg_members)
 where not exists (select 1 from official_minyanim limit 1);
 
+-- ==================== FRIENDSHIPS TABLE ====================
+create table if not exists friendships (
+  id uuid primary key default extensions.gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade not null,
+  friend_id uuid references profiles(id) on delete cascade not null,
+  created_at timestamptz not null default now(),
+  unique(user_id, friend_id),
+  check (user_id != friend_id)
+);
+
+create index if not exists friendships_user_id_idx on friendships (user_id);
+create index if not exists friendships_friend_id_idx on friendships (friend_id);
+
+-- ==================== FRIEND REQUESTS TABLE ====================
+create table if not exists friend_requests (
+  id uuid primary key default extensions.gen_random_uuid(),
+  from_user_id uuid references profiles(id) on delete cascade not null,
+  to_user_id uuid references profiles(id) on delete cascade not null,
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'declined')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(from_user_id, to_user_id),
+  check (from_user_id != to_user_id)
+);
+
+create index if not exists friend_requests_to_user_idx on friend_requests (to_user_id, status);
+create index if not exists friend_requests_from_user_idx on friend_requests (from_user_id);
+
+-- ==================== USER PRESENCE TABLE ====================
+create table if not exists user_presence (
+  user_id uuid primary key references profiles(id) on delete cascade,
+  last_seen timestamptz not null default now(),
+  is_online boolean not null default true
+);
+
+create index if not exists user_presence_online_idx on user_presence (is_online) where is_online = true;
+
+-- ==================== MINYAN INVITES TABLE ====================
+create table if not exists minyan_invites (
+  id uuid primary key default extensions.gen_random_uuid(),
+  space_id uuid references spaces(id) on delete cascade not null,
+  from_user_id uuid references profiles(id) on delete cascade not null,
+  to_user_id uuid references profiles(id) on delete cascade not null,
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'declined')),
+  created_at timestamptz not null default now(),
+  unique(space_id, from_user_id, to_user_id)
+);
+
+create index if not exists minyan_invites_to_user_idx on minyan_invites (to_user_id, status);
+
+-- ==================== ENABLE RLS FOR NEW TABLES ====================
+alter table friendships enable row level security;
+alter table friend_requests enable row level security;
+alter table user_presence enable row level security;
+alter table minyan_invites enable row level security;
+
+-- ==================== FRIENDSHIPS POLICIES ====================
+create policy "Users can view their own friendships" on friendships
+  for select using (auth.uid() = user_id or auth.uid() = friend_id);
+
+create policy "Users can create friendships" on friendships
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can delete their own friendships" on friendships
+  for delete using (auth.uid() = user_id or auth.uid() = friend_id);
+
+-- ==================== FRIEND REQUESTS POLICIES ====================
+create policy "Users can view requests they sent or received" on friend_requests
+  for select using (auth.uid() = from_user_id or auth.uid() = to_user_id);
+
+create policy "Users can send friend requests" on friend_requests
+  for insert with check (auth.uid() = from_user_id);
+
+create policy "Users can update requests sent to them" on friend_requests
+  for update using (auth.uid() = to_user_id);
+
+create policy "Users can delete requests they sent" on friend_requests
+  for delete using (auth.uid() = from_user_id);
+
+-- ==================== USER PRESENCE POLICIES ====================
+create policy "Anyone can view online status" on user_presence
+  for select using (true);
+
+create policy "Users can update their own presence" on user_presence
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can update their own presence status" on user_presence
+  for update using (auth.uid() = user_id);
+
+-- ==================== MINYAN INVITES POLICIES ====================
+create policy "Users can view invites they sent or received" on minyan_invites
+  for select using (auth.uid() = from_user_id or auth.uid() = to_user_id);
+
+create policy "Users can send invites" on minyan_invites
+  for insert with check (auth.uid() = from_user_id);
+
+create policy "Users can update invites sent to them" on minyan_invites
+  for update using (auth.uid() = to_user_id);
+
+-- ==================== FRIEND REQUEST TRIGGERS ====================
+-- When a friend request is accepted, create the friendship
+create or replace function handle_friend_request_accepted()
+returns trigger as $$
+begin
+  if new.status = 'accepted' and old.status = 'pending' then
+    -- Create bidirectional friendship
+    insert into friendships (user_id, friend_id)
+    values (new.from_user_id, new.to_user_id)
+    on conflict do nothing;
+
+    insert into friendships (user_id, friend_id)
+    values (new.to_user_id, new.from_user_id)
+    on conflict do nothing;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_friend_request_accepted on friend_requests;
+create trigger on_friend_request_accepted
+after update on friend_requests
+for each row execute function handle_friend_request_accepted();
+
+-- Update friend_requests updated_at
+drop trigger if exists friend_requests_updated_at on friend_requests;
+create trigger friend_requests_updated_at
+before update on friend_requests
+for each row execute function update_updated_at_column();
+
+-- ==================== HELPER FUNCTIONS FOR FRIENDS ====================
+-- Get online user count
+create or replace function get_online_user_count()
+returns integer as $$
+begin
+  return (
+    select count(*)::integer
+    from user_presence
+    where is_online = true
+      and last_seen > now() - interval '5 minutes'
+  );
+end;
+$$ language plpgsql security definer;
+
+-- Update user presence (upsert)
+create or replace function update_user_presence(p_user_id uuid)
+returns void as $$
+begin
+  insert into user_presence (user_id, last_seen, is_online)
+  values (p_user_id, now(), true)
+  on conflict (user_id) do update
+  set last_seen = now(), is_online = true;
+end;
+$$ language plpgsql security definer;
+
+-- Set user offline
+create or replace function set_user_offline(p_user_id uuid)
+returns void as $$
+begin
+  update user_presence
+  set is_online = false
+  where user_id = p_user_id;
+end;
+$$ language plpgsql security definer;
+
 -- ==================== ENABLE REALTIME ====================
 -- Enable realtime for tables that need live updates
 alter publication supabase_realtime add table spaces;
 alter publication supabase_realtime add table space_members;
 alter publication supabase_realtime add table space_messages;
 alter publication supabase_realtime add table notifications;
+alter publication supabase_realtime add table friendships;
+alter publication supabase_realtime add table friend_requests;
+alter publication supabase_realtime add table user_presence;
+alter publication supabase_realtime add table minyan_invites;

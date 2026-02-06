@@ -90,3 +90,35 @@ export type SpaceDraft = {
 };
 
 export type AuthMode = "signIn" | "signUp";
+
+// Friends system types
+export type FriendRequestStatus = "pending" | "accepted" | "declined";
+
+export type FriendRequest = {
+  id: string;
+  from_user_id: string;
+  to_user_id: string;
+  status: FriendRequestStatus;
+  created_at: string;
+  from_user?: Profile;
+  to_user?: Profile;
+};
+
+export type Friendship = {
+  id: string;
+  user_id: string;
+  friend_id: string;
+  created_at: string;
+  friend?: Profile;
+};
+
+export type MinyanInvite = {
+  id: string;
+  space_id: string;
+  from_user_id: string;
+  to_user_id: string;
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+  from_user?: Profile;
+  space?: SpaceRow;
+};
