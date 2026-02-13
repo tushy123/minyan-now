@@ -42,9 +42,11 @@ export function useSpaces(userId?: string) {
     setJoinedSpaceIds(data);
   }, [userId]);
 
-  // Initial fetch
+  // Initial fetch + poll every 5 seconds
   useEffect(() => {
     void refreshSpaces();
+    const interval = setInterval(refreshSpaces, 5000);
+    return () => clearInterval(interval);
   }, [refreshSpaces]);
 
   useEffect(() => {

@@ -86,6 +86,8 @@ export type SpaceDraft = {
   tefillah: TefillahKey;
   startMinutes: number;
   location: string;
+  lat: number | null;
+  lng: number | null;
   notes: string;
 };
 

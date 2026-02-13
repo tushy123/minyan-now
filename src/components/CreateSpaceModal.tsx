@@ -1,6 +1,9 @@
+import { useState, useRef, useEffect } from "react";
 import type { FormEvent } from "react";
 import type { SpaceDraft, TefillahKey, ZmanWindow } from "@/lib/types";
 import { formatTimeFromMinutes } from "@/lib/format";
+import { useAddressAutocomplete } from "@/hooks/useAddressAutocomplete";
+import type { AddressSuggestion } from "@/hooks/useAddressAutocomplete";
 
 export function CreateSpaceModal({
   open,
@@ -9,6 +12,7 @@ export function CreateSpaceModal({
   createLoading,
   zmanWindow,
   zmanLabels,
+  near,
   onClose,
   onSubmit,
   onDraftChange,
@@ -19,10 +23,43 @@ export function CreateSpaceModal({
   createLoading: boolean;
   zmanWindow: ZmanWindow;
   zmanLabels: { start: string; end: string };
+  near?: { lat: number; lng: number };
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDraftChange: (value: SpaceDraft) => void;
 }) {
+  const { suggestions, loading: acLoading, search, clear } = useAddressAutocomplete(near);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  function handleLocationInput(value: string) {
+    onDraftChange({ ...draft, location: value, lat: null, lng: null });
+    search(value);
+    setShowSuggestions(true);
+  }
+
+  function handleSelectSuggestion(suggestion: AddressSuggestion) {
+    onDraftChange({
+      ...draft,
+      location: suggestion.formattedAddress,
+      lat: suggestion.latitude,
+      lng: suggestion.longitude,
+    });
+    setShowSuggestions(false);
+    clear();
+  }
+
   return (
     <div className={`modal${open ? " active" : ""}`}>
       <div className="modal-content">
@@ -73,22 +110,42 @@ export function CreateSpaceModal({
             </small>
           </div>
 
-          <div className="form-group">
+          <div className="form-group" ref={wrapperRef}>
             <label htmlFor="location">Location</label>
-            <input
-              type="text"
-              id="location"
-              placeholder="Search address or drop pin on map"
-              value={draft.location}
-              onChange={(event) =>
-                onDraftChange({
-                  ...draft,
-                  location: event.target.value,
-                })
-              }
-              required
-            />
-            <small>Tap map to set location</small>
+            <div className="autocomplete-wrapper">
+              <input
+                type="text"
+                id="location"
+                placeholder="Search for an address..."
+                value={draft.location}
+                onChange={(e) => handleLocationInput(e.target.value)}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true);
+                }}
+                autoComplete="off"
+                required
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <ul className="autocomplete-suggestions">
+                  {suggestions.map((s, i) => (
+                    <li key={i}>
+                      <button
+                        type="button"
+                        className="autocomplete-item"
+                        onClick={() => handleSelectSuggestion(s)}
+                      >
+                        {s.formattedAddress}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {acLoading && showSuggestions && (
+                <div className="autocomplete-loading">
+                  <small>Searching...</small>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="form-group">

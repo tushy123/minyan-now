@@ -153,6 +153,8 @@ export default function Home() {
     tefillah: "mincha",
     startMinutes: ZMAN_WINDOWS.mincha.start,
     location: "",
+    lat: null,
+    lng: null,
     notes: "",
   });
   const handleMarkAllAlertsRead = useCallback(() => {
@@ -252,8 +254,8 @@ export default function Home() {
       const result = await createNewSpace({
         tefillah: TEFILLAH_TO_DB[draft.tefillah],
         start_time: startDate.toISOString(),
-        lat: userLocation?.lat ?? DEFAULT_CENTER.lat,
-        lng: userLocation?.lng ?? DEFAULT_CENTER.lng,
+        lat: draft.lat ?? userLocation?.lat ?? DEFAULT_CENTER.lat,
+        lng: draft.lng ?? userLocation?.lng ?? DEFAULT_CENTER.lng,
         map_x: 50,
         map_y: 50,
         address: draft.location || null,
@@ -274,7 +276,7 @@ export default function Home() {
       await joinExistingSpace(result.data.id);
       setCreateLoading(false);
       closeModal("create");
-      setDraft((prev) => ({ ...prev, location: "", notes: "" }));
+      setDraft((prev) => ({ ...prev, location: "", lat: null, lng: null, notes: "" }));
       pushToast("Space created successfully!", "success");
     },
     [
@@ -488,6 +490,7 @@ export default function Home() {
           createLoading={createLoading}
           zmanWindow={zmanWindows[draft.tefillah]}
           zmanLabels={zmanLabels[draft.tefillah]}
+          near={userLocation ?? undefined}
           onClose={() => closeModal("create")}
           onSubmit={handleCreateSpace}
           onDraftChange={setDraft}
