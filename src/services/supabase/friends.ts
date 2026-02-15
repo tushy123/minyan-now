@@ -319,6 +319,45 @@ export async function getFriendsInSpace(spaceId: string): Promise<{ data: Profil
   return { data: friends, error: null };
 }
 
+// ==================== PROFILE LOOKUP ====================
+
+export async function fetchProfileById(userId: string): Promise<{
+  profile: Profile | null;
+  joinedCount: number;
+  hostedCount: number;
+}> {
+  if (!supabase || !isSupabaseConfigured) {
+    return { profile: null, joinedCount: 0, hostedCount: 0 };
+  }
+
+  const { data: profileData, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+
+  if (error || !profileData) {
+    return { profile: null, joinedCount: 0, hostedCount: 0 };
+  }
+
+  const [{ count: joinedCount }, { count: hostedCount }] = await Promise.all([
+    supabase
+      .from("space_members")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId),
+    supabase
+      .from("spaces")
+      .select("*", { count: "exact", head: true })
+      .eq("host_id", userId),
+  ]);
+
+  return {
+    profile: profileData as Profile,
+    joinedCount: joinedCount ?? 0,
+    hostedCount: hostedCount ?? 0,
+  };
+}
+
 // ==================== USER PRESENCE ====================
 
 export async function updateUserPresence(): Promise<void> {

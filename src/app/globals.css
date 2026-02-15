@@ -3372,3 +3372,80 @@ input[type="range"]:disabled {
   color: var(--text-muted);
   font-size: 0.85rem;
 }
+
+/* ==========================================================================
+   Members Section (Minyan Page)
+   ========================================================================== */
+
+.members-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.members-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  width: 100%;
+}
+
+.member-item:hover {
+  border-color: var(--accent-3);
+  background: var(--accent-3-muted);
+}
+
+.member-item:active {
+  transform: scale(0.98);
+}
+
+.member-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--accent-3) 0%, var(--accent-purple) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+}
+
+.member-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* User Profile Modal Loading */
+.user-profile-loading {
+  text-align: center;
+  padding: var(--space-5);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}

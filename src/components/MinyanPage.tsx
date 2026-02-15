@@ -1,5 +1,7 @@
 import type { UiItem, UiSpace, UiSet } from "@/lib/types";
+import type { SpaceMember } from "@/hooks/useSpaces";
 import { TEFILLAH_LABELS } from "@/lib/constants";
+import { createInitials } from "@/lib/utils";
 
 export type ChatMessage = {
   sender: string;
@@ -10,15 +12,19 @@ export type ChatMessage = {
 export function MinyanPage({
   item,
   chatMessages,
+  members,
   onClose,
   onSendChat,
   onDirections,
+  onMemberTap,
 }: {
   item: UiItem | null;
   chatMessages: ChatMessage[];
+  members: SpaceMember[];
   onClose: () => void;
   onSendChat: (spaceId: string, text: string) => void;
   onDirections: (item: UiItem) => void;
+  onMemberTap: (userId: string) => void;
 }) {
   if (!item) {
     return <div className="minyan-page hidden"></div>;
@@ -75,6 +81,24 @@ export function MinyanPage({
             Get Directions
           </button>
         </div>
+
+        {isSpace && members.length > 0 && (
+          <div className="members-section">
+            <div className="members-title">Members ({members.length})</div>
+            <div className="members-list">
+              {members.map((member) => (
+                <button
+                  key={member.userId}
+                  className="member-item"
+                  onClick={() => onMemberTap(member.userId)}
+                >
+                  <div className="member-avatar">{createInitials(member.fullName)}</div>
+                  <span className="member-name">{member.fullName ?? "Anonymous"}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {isSpace && (
           <div className="minyan-page-chat">

@@ -35,6 +35,8 @@ import { ZmanimModal } from "@/components/ZmanimModal";
 import { SettingsPage } from "@/components/SettingsPage";
 import { AlertsPage, type Alert } from "@/components/AlertsPage";
 import { FriendsPage } from "@/components/FriendsPage";
+import { UserProfileModal } from "@/components/UserProfileModal";
+import type { SpaceMember } from "@/hooks/useSpaces";
 
 export default function Home() {
   // ==================== Core Hooks ====================
@@ -58,6 +60,7 @@ export default function Home() {
     createNewSpace,
     joinExistingSpace,
     leaveExistingSpace,
+    getSpaceMembers,
   } = useSpaces(session?.user?.id);
 
   const { toasts, pushToast } = useToasts();
@@ -138,6 +141,8 @@ export default function Home() {
     [alerts]
   );
   const [activeTab, setActiveTab] = useState<NavTab>("home");
+  const [spaceMembers, setSpaceMembers] = useState<SpaceMember[]>([]);
+  const [viewProfileUserId, setViewProfileUserId] = useState<string | null>(null);
 
   // ==================== Auth Form State ====================
   const [authMode, setAuthMode] = useState<AuthMode>("signIn");
@@ -185,6 +190,23 @@ export default function Home() {
       setAuthStatus(null);
     }
   }, [session?.user, closeModal, setAuthError, setAuthStatus]);
+
+  // Fetch & poll members for the selected minyan page
+  useEffect(() => {
+    const spaceId = minyanPage.selected?.type === "space" ? minyanPage.selected.id : null;
+    if (!spaceId) {
+      setSpaceMembers([]);
+      return;
+    }
+
+    const fetchMembers = () => {
+      getSpaceMembers(spaceId).then(setSpaceMembers);
+    };
+
+    fetchMembers();
+    const interval = setInterval(fetchMembers, 5000);
+    return () => clearInterval(interval);
+  }, [minyanPage.selected, getSpaceMembers]);
 
   // Sync draft time with zman window
   useEffect(() => {
@@ -470,9 +492,11 @@ export default function Home() {
             text: m.text,
             time: new Date(m.createdAt).getTime(),
           }))}
+          members={spaceMembers}
           onClose={minyanPage.clear}
           onSendChat={handleSendChat}
           onDirections={handleDirections}
+          onMemberTap={(userId) => setViewProfileUserId(userId)}
         />
 
         <DetailSheet
@@ -504,6 +528,12 @@ export default function Home() {
           hostedCount={spaces.filter((space) => space.host_id === profile?.id).length}
           onClose={() => closeModal("profile")}
           onSignOut={handleSignOut}
+        />
+
+        <UserProfileModal
+          open={viewProfileUserId !== null}
+          userId={viewProfileUserId}
+          onClose={() => setViewProfileUserId(null)}
         />
 
         <FilterModal
