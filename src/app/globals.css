@@ -1556,6 +1556,36 @@ input[type="range"]:disabled {
   color: var(--text-secondary);
 }
 
+/* Distance Presets */
+.distance-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.distance-preset-btn {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.distance-preset-btn:hover {
+  border-color: var(--border-emphasis);
+  color: var(--text-secondary);
+}
+
+.distance-preset-btn.active {
+  background: var(--accent-3);
+  border-color: var(--accent-3);
+  color: white;
+}
+
 /* Select Pills */
 .select-pills {
   display: flex;

@@ -54,17 +54,19 @@ export function FilterModal({
           </select>
         </div>
         <div className="form-group">
-          <label htmlFor="maxDistance">Max distance (miles)</label>
-          <input
-            type="range"
-            id="maxDistance"
-            min="0.1"
-            max="2"
-            step="0.1"
-            value={maxDistance}
-            onChange={(event) => onDistanceChange(parseFloat(event.target.value))}
-          />
-          <div className="range-value">{maxDistance.toFixed(1)} miles</div>
+          <label>Max distance</label>
+          <div className="distance-presets">
+            {([1, 5, 10, 25, 50, Infinity] as number[]).map((value) => (
+              <button
+                key={value}
+                type="button"
+                className={`distance-preset-btn${maxDistance === value ? " active" : ""}`}
+                onClick={() => onDistanceChange(value)}
+              >
+                {value === Infinity ? "Unlimited" : `${value} mi`}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onReset}>

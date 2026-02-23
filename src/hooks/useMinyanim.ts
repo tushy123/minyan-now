@@ -27,7 +27,7 @@ export function useMinyanim({
   const [currentFilter, setCurrentFilter] = useState<TefillahKey>(initialTefillah);
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortBy, setSortBy] = useState<SortOption>("closest");
-  const [maxDistance, setMaxDistance] = useState(2);
+  const [maxDistance, setMaxDistance] = useState(Infinity);
 
   // Fetch official minyanim from database
   useEffect(() => {
@@ -112,7 +112,7 @@ export function useMinyanim({
     return allItems.filter((item) => {
       if (item.tefillah !== currentFilter) return false;
       if (filterType !== "all" && item.type !== filterType) return false;
-      if (item.distanceMiles > maxDistance) return false;
+      if (maxDistance !== Infinity && item.distanceMiles > maxDistance) return false;
       return true;
     });
   }, [allItems, currentFilter, filterType, maxDistance]);
@@ -155,7 +155,7 @@ export function useMinyanim({
   const resetFilters = useCallback(() => {
     setFilterType("all");
     setSortBy("closest");
-    setMaxDistance(2);
+    setMaxDistance(Infinity);
   }, []);
 
   return {
