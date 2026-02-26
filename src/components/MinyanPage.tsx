@@ -2,6 +2,7 @@ import type { UiItem, UiSpace, UiSet } from "@/lib/types";
 import type { SpaceMember } from "@/hooks/useSpaces";
 import { TEFILLAH_LABELS } from "@/lib/constants";
 import { createInitials } from "@/lib/utils";
+import { MiniMap } from "./MiniMap";
 
 export type ChatMessage = {
   sender: string;
@@ -67,15 +68,7 @@ export function MinyanPage({
             <div className="minyan-page-note">{spaceItem.notes}</div>
           )}
           <div className="minyan-page-map">
-            <img
-              src={`https://staticmap.openstreetmap.de/staticmap.php?center=${item.lat},${item.lng}&zoom=14&size=640x320&maptype=mapnik&markers=${item.lat},${item.lng},red-pushpin`}
-              alt="Map preview"
-              onError={(event) => {
-                const target = event.currentTarget;
-                target.style.display = "none";
-                target.parentElement?.classList.add("map-fallback");
-              }}
-            />
+            <MiniMap lat={item.lat} lng={item.lng} isOfficial={!isSpace} />
           </div>
           <button className="btn btn-primary btn-block" onClick={() => onDirections(item)}>
             Get Directions
