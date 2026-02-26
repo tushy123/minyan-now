@@ -108,8 +108,9 @@ export function useSpaces(userId?: string) {
           table: "space_members",
         },
         () => {
-          // Refresh memberships when any change happens
+          // Refresh memberships and spaces (for quorum_count) when any change happens
           void refreshMemberships();
+          void refreshSpaces();
         }
       )
       .subscribe();
@@ -190,9 +191,10 @@ export function useSpaces(userId?: string) {
         return { error, duplicate: false };
       }
       await refreshMemberships();
+      await refreshSpaces();
       return { error: null, duplicate: duplicate ?? false };
     },
-    [userId, refreshMemberships]
+    [userId, refreshMemberships, refreshSpaces]
   );
 
   const leaveExistingSpace = useCallback(
@@ -205,9 +207,10 @@ export function useSpaces(userId?: string) {
         return { error };
       }
       await refreshMemberships();
+      await refreshSpaces();
       return { error: null };
     },
-    [userId, refreshMemberships]
+    [userId, refreshMemberships, refreshSpaces]
   );
 
   const getSpaceMembers = useCallback(async (spaceId: string): Promise<SpaceMember[]> => {
