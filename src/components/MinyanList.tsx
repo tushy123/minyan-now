@@ -8,6 +8,8 @@ export function MinyanList({
   joiningId,
   onExpand,
   onJoin,
+  onOpen,
+  onLeave,
   onDirections,
 }: {
   items: UiItem[];
@@ -15,6 +17,8 @@ export function MinyanList({
   joiningId: string | null;
   onExpand: (item: UiItem) => void;
   onJoin: (space: UiSpace) => void;
+  onOpen: (item: UiItem) => void;
+  onLeave: (spaceId: string) => void;
   onDirections: (item: UiItem) => void;
 }) {
   if (items.length === 0) {
@@ -135,6 +139,18 @@ export function MinyanList({
                       className="btn btn-primary btn-block"
                       onClick={(event) => {
                         event.stopPropagation();
+                        onOpen(item);
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      Open
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-block"
+                      onClick={(event) => {
+                        event.stopPropagation();
                         onDirections(item);
                       }}
                     >
@@ -147,7 +163,7 @@ export function MinyanList({
                       className="btn btn-secondary btn-block"
                       onClick={(event) => {
                         event.stopPropagation();
-                        // Leave action would go here
+                        onLeave(item.id);
                       }}
                     >
                       Leave
