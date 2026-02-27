@@ -546,6 +546,7 @@ export default function Home() {
         <ShulDashboard
           open={showShulDashboard}
           shulState={shulState}
+          userLocation={userLocation ?? undefined}
           onClose={() => setShowShulDashboard(false)}
           onToast={pushToast}
         />

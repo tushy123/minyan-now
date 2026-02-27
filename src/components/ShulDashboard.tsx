@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { ShulState } from "@/hooks/useShul";
 import type { DayKey, ShulSchedule } from "@/lib/types";
+import { useAddressAutocomplete } from "@/hooks/useAddressAutocomplete";
+import type { AddressSuggestion } from "@/hooks/useAddressAutocomplete";
 
 const DAY_OPTIONS: { key: DayKey; label: string; short: string }[] = [
     { key: "sun", label: "Sunday", short: "Sun" },
@@ -20,12 +22,7 @@ const TEFILLAH_OPTIONS = [
     { key: "MAARIV" as const, label: "Maariv", icon: "🌙" },
 ];
 
-const NUSACH_OPTIONS = [
-    { key: "ashkenaz" as const, label: "Ashkenaz" },
-    { key: "sefard" as const, label: "Sefard" },
-    { key: "edot_hamizrach" as const, label: "Edot HaMizrach" },
-    { key: "other" as const, label: "Other" },
-];
+const NUSACH_PRESETS = ["Ashkenaz", "Sefard", "Edot HaMizrach", "Chabad", "Other"];
 
 function formatDays(days: DayKey[]): string {
     if (days.length === 7) return "Daily";
@@ -37,11 +34,13 @@ function formatDays(days: DayKey[]): string {
 export function ShulDashboard({
     open,
     shulState,
+    userLocation,
     onClose,
     onToast,
 }: {
     open: boolean;
     shulState: ShulState;
+    userLocation?: { lat: number; lng: number };
     onClose: () => void;
     onToast: (msg: string, type: "success" | "error") => void;
 }) {
@@ -49,15 +48,32 @@ export function ShulDashboard({
     const [view, setView] = useState<"dashboard" | "register" | "add-schedule" | "edit-schedule" | "add-override">("dashboard");
     const [editingSchedule, setEditingSchedule] = useState<ShulSchedule | null>(null);
 
+    // Address autocomplete
+    const { suggestions, loading: acLoading, search: acSearch, clear: acClear } = useAddressAutocomplete(userLocation);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const addressWrapperRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        function handleClickOutside(e: MouseEvent) {
+            if (addressWrapperRef.current && !addressWrapperRef.current.contains(e.target as Node)) {
+                setShowSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     // Registration form state
     const [regName, setRegName] = useState("");
     const [regAddress, setRegAddress] = useState("");
-    const [regNusach, setRegNusach] = useState<"ashkenaz" | "sefard" | "edot_hamizrach" | "other">("ashkenaz");
+    const [regLat, setRegLat] = useState<number | null>(null);
+    const [regLng, setRegLng] = useState<number | null>(null);
+    const [regNusach, setRegNusach] = useState("");
+    const [showNusachPresets, setShowNusachPresets] = useState(false);
     const [regEmail, setRegEmail] = useState("");
     const [regPhone, setRegPhone] = useState("");
     const [regWebsite, setRegWebsite] = useState("");
-    const [regLat, setRegLat] = useState("");
-    const [regLng, setRegLng] = useState("");
     const [regLoading, setRegLoading] = useState(false);
 
     // Schedule form state
@@ -83,26 +99,67 @@ export function ShulDashboard({
         );
     }, []);
 
+    const handleAddressInput = useCallback((value: string) => {
+        setRegAddress(value);
+        setRegLat(null);
+        setRegLng(null);
+        acSearch(value);
+        setShowSuggestions(true);
+    }, [acSearch]);
+
+    const handleSelectSuggestion = useCallback((suggestion: AddressSuggestion) => {
+        setRegAddress(suggestion.formattedAddress);
+        setRegLat(suggestion.latitude);
+        setRegLng(suggestion.longitude);
+        setShowSuggestions(false);
+        acClear();
+    }, [acClear]);
+
+    const handleUseCurrentLocation = useCallback(async () => {
+        if (!userLocation) {
+            onToast("Location not available. Enable location in settings.", "error");
+            return;
+        }
+        setRegLat(userLocation.lat);
+        setRegLng(userLocation.lng);
+
+        // Reverse geocode to get address
+        try {
+            const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY ?? "";
+            if (API_KEY) {
+                const res = await fetch(
+                    `https://maps.googleapis.com/maps/api/geocode/json?latlng=${userLocation.lat},${userLocation.lng}&key=${API_KEY}`
+                );
+                const data = await res.json();
+                if (data.results?.[0]?.formatted_address) {
+                    setRegAddress(data.results[0].formatted_address);
+                }
+            }
+        } catch {
+            // Silently fail — coordinates are still set
+        }
+        onToast("Using your current location", "success");
+    }, [userLocation, onToast]);
+
     const handleRegister = useCallback(async () => {
         if (!regName.trim() || !regAddress.trim()) {
             onToast("Name and address are required", "error");
             return;
         }
-        const lat = parseFloat(regLat);
-        const lng = parseFloat(regLng);
-        if (isNaN(lat) || isNaN(lng)) {
-            onToast("Please enter valid coordinates", "error");
+        if (regLat === null || regLng === null) {
+            onToast("Please select an address from suggestions or use current location", "error");
             return;
         }
 
         setRegLoading(true);
+        const nusachKey = regNusach.trim().toLowerCase().replace(/\s+/g, "_") || undefined;
         const { error } = await shulState.register(
             {
                 name: regName.trim(),
                 address: regAddress.trim(),
-                lat,
-                lng,
-                nusach: regNusach,
+                lat: regLat,
+                lng: regLng,
+                nusach: nusachKey as Parameters<typeof shulState.register>[0]["nusach"],
                 contact_email: regEmail.trim() || undefined,
                 contact_phone: regPhone.trim() || undefined,
                 website: regWebsite.trim() || undefined,
@@ -275,54 +332,72 @@ export function ShulDashboard({
                             />
                         </div>
 
-                        <div className="shul-form-field">
+                        <div className="shul-form-field" ref={addressWrapperRef}>
                             <label className="shul-form-label">Address *</label>
-                            <input
-                                className="shul-form-input"
-                                value={regAddress}
-                                onChange={(e) => setRegAddress(e.target.value)}
-                                placeholder="e.g., 123 Main St, Forest Hills, NY"
-                            />
-                        </div>
-
-                        <div className="shul-form-row">
-                            <div className="shul-form-field">
-                                <label className="shul-form-label">Latitude *</label>
+                            <div className="autocomplete-wrapper">
                                 <input
                                     className="shul-form-input"
-                                    type="number"
-                                    step="any"
-                                    value={regLat}
-                                    onChange={(e) => setRegLat(e.target.value)}
-                                    placeholder="40.7200"
+                                    value={regAddress}
+                                    onChange={(e) => handleAddressInput(e.target.value)}
+                                    onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                                    placeholder="Search for an address..."
+                                    autoComplete="off"
                                 />
+                                {showSuggestions && suggestions.length > 0 && (
+                                    <ul className="autocomplete-suggestions">
+                                        {suggestions.map((s, i) => (
+                                            <li key={i}>
+                                                <button
+                                                    type="button"
+                                                    className="autocomplete-item"
+                                                    onClick={() => handleSelectSuggestion(s)}
+                                                >
+                                                    {s.formattedAddress}
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                                {acLoading && showSuggestions && (
+                                    <div className="autocomplete-loading">
+                                        <small>Searching...</small>
+                                    </div>
+                                )}
                             </div>
-                            <div className="shul-form-field">
-                                <label className="shul-form-label">Longitude *</label>
-                                <input
-                                    className="shul-form-input"
-                                    type="number"
-                                    step="any"
-                                    value={regLng}
-                                    onChange={(e) => setRegLng(e.target.value)}
-                                    placeholder="-73.8450"
-                                />
-                            </div>
+                            <button
+                                type="button"
+                                className="shul-location-btn"
+                                onClick={handleUseCurrentLocation}
+                            >
+                                📍 Use Current Location
+                            </button>
                         </div>
 
                         <div className="shul-form-field">
                             <label className="shul-form-label">Nusach</label>
-                            <div className="settings-pills">
-                                {NUSACH_OPTIONS.map((n) => (
-                                    <button
-                                        key={n.key}
-                                        className={`settings-pill${regNusach === n.key ? " active" : ""}`}
-                                        onClick={() => setRegNusach(n.key)}
-                                    >
-                                        {n.label}
-                                    </button>
-                                ))}
-                            </div>
+                            <input
+                                className="shul-form-input"
+                                value={regNusach}
+                                onChange={(e) => { setRegNusach(e.target.value); setShowNusachPresets(true); }}
+                                onFocus={() => setShowNusachPresets(true)}
+                                onBlur={() => setTimeout(() => setShowNusachPresets(false), 200)}
+                                placeholder="e.g., Ashkenaz, Sefard, Chabad"
+                            />
+                            {showNusachPresets && (
+                                <div className="shul-nusach-presets">
+                                    {NUSACH_PRESETS.filter((p) => p.toLowerCase().includes(regNusach.toLowerCase())).map((preset) => (
+                                        <button
+                                            key={preset}
+                                            type="button"
+                                            className="shul-nusach-preset-btn"
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onClick={() => { setRegNusach(preset); setShowNusachPresets(false); }}
+                                        >
+                                            {preset}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </section>
 
@@ -625,7 +700,7 @@ export function ShulDashboard({
                         <p className="shul-info-address">{shul?.address}</p>
                         {shul?.nusach && (
                             <p className="shul-info-nusach">
-                                Nusach: {NUSACH_OPTIONS.find((n) => n.key === shul.nusach)?.label}
+                                Nusach: {shul.nusach.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                             </p>
                         )}
                         {shul?.contact_email && <p className="shul-info-contact">📧 {shul.contact_email}</p>}
