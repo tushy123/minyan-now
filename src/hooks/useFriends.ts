@@ -48,6 +48,8 @@ export function useFriends(userId: string | undefined) {
 
   useEffect(() => {
     refresh();
+    const interval = setInterval(refresh, 5000);
+    return () => clearInterval(interval);
   }, [refresh]);
 
   const sendRequest = useCallback(async (toUserId: string) => {

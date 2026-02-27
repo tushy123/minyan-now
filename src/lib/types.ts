@@ -124,3 +124,62 @@ export type MinyanInvite = {
   from_user?: Profile;
   space?: SpaceRow;
 };
+
+// ==================== Shul Account Types ====================
+
+export type NusachType = "ashkenaz" | "sefard" | "edot_hamizrach" | "other";
+
+export type DayKey = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "shabbat";
+
+export type Shul = {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  nusach: NusachType | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  website: string | null;
+  verified: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ShulSchedule = {
+  id: string;
+  shul_id: string;
+  tefillah: "SHACHARIS" | "MINCHA" | "MAARIV";
+  days: DayKey[];
+  start_time: string;
+  name: string | null;
+  notes: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OverrideType = "time_change" | "cancelled" | "added";
+
+export type ScheduleOverride = {
+  id: string;
+  shul_id: string;
+  schedule_id: string | null;
+  override_date: string;
+  override_type: OverrideType;
+  new_time: string | null;
+  tefillah: "SHACHARIS" | "MINCHA" | "MAARIV" | null;
+  reason: string | null;
+  created_at: string;
+};
+
+export type ShulAdminRole = "owner" | "gabbai";
+
+export type ShulAdmin = {
+  id: string;
+  user_id: string;
+  shul_id: string;
+  role: ShulAdminRole;
+  created_at: string;
+};
+

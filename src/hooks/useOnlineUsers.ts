@@ -13,8 +13,8 @@ export function useOnlineUsers(userId: string | undefined) {
     // Initial fetch
     fetchCount();
 
-    // Poll every 10 seconds
-    const interval = setInterval(fetchCount, 10000);
+    // Poll every 5 seconds
+    const interval = setInterval(fetchCount, 5000);
 
     return () => clearInterval(interval);
   }, [fetchCount]);

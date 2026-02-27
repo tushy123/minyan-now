@@ -96,6 +96,69 @@ create table if not exists official_minyanim (
 create index if not exists official_minyanim_tefillah_idx on official_minyanim (tefillah);
 create index if not exists official_minyanim_active_idx on official_minyanim (active);
 
+-- ==================== SHULS (Official Shul Entities) ====================
+create table if not exists shuls (
+  id uuid primary key default extensions.gen_random_uuid(),
+  name text not null,
+  address text not null,
+  lat double precision not null,
+  lng double precision not null,
+  nusach text check (nusach in ('ashkenaz','sefard','edot_hamizrach','other')),
+  contact_email text,
+  contact_phone text,
+  website text,
+  verified boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists shuls_lat_lng_idx on shuls (lat, lng);
+
+-- ==================== SHUL ADMINS ====================
+create table if not exists shul_admins (
+  id uuid primary key default extensions.gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  shul_id uuid not null references shuls(id) on delete cascade,
+  role text not null default 'owner' check (role in ('owner','gabbai')),
+  created_at timestamptz not null default now(),
+  unique (user_id, shul_id)
+);
+
+create index if not exists shul_admins_user_idx on shul_admins (user_id);
+create index if not exists shul_admins_shul_idx on shul_admins (shul_id);
+
+-- ==================== SHUL SCHEDULES (Recurring Weekly Times) ====================
+create table if not exists shul_schedules (
+  id uuid primary key default extensions.gen_random_uuid(),
+  shul_id uuid not null references shuls(id) on delete cascade,
+  tefillah text not null check (tefillah in ('SHACHARIS','MINCHA','MAARIV')),
+  days text[] not null default '{}',
+  start_time text not null,
+  name text,
+  notes text,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists shul_schedules_shul_idx on shul_schedules (shul_id);
+create index if not exists shul_schedules_tefillah_idx on shul_schedules (tefillah);
+
+-- ==================== SCHEDULE OVERRIDES (Special Days) ====================
+create table if not exists schedule_overrides (
+  id uuid primary key default extensions.gen_random_uuid(),
+  shul_id uuid not null references shuls(id) on delete cascade,
+  schedule_id uuid references shul_schedules(id) on delete cascade,
+  override_date date not null,
+  override_type text not null check (override_type in ('time_change','cancelled','added')),
+  new_time text,
+  tefillah text check (tefillah in ('SHACHARIS','MINCHA','MAARIV')),
+  reason text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists schedule_overrides_shul_date_idx on schedule_overrides (shul_id, override_date);
+
 -- ==================== USER NOTIFICATION PREFERENCES ====================
 create table if not exists notification_preferences (
   user_id uuid primary key references profiles(id) on delete cascade,
@@ -491,6 +554,115 @@ alter table friendships enable row level security;
 alter table friend_requests enable row level security;
 alter table user_presence enable row level security;
 alter table minyan_invites enable row level security;
+alter table shuls enable row level security;
+alter table shul_admins enable row level security;
+alter table shul_schedules enable row level security;
+alter table schedule_overrides enable row level security;
+
+-- ==================== SHULS POLICIES ====================
+create policy "Anyone can view shuls" on shuls
+  for select using (true);
+
+create policy "Authenticated users can create shuls" on shuls
+  for insert with check (auth.uid() is not null);
+
+create policy "Shul admins can update their shul" on shuls
+  for update using (
+    exists (
+      select 1 from shul_admins
+      where shul_admins.shul_id = shuls.id
+      and shul_admins.user_id = auth.uid()
+    )
+  );
+
+create policy "Shul owners can delete their shul" on shuls
+  for delete using (
+    exists (
+      select 1 from shul_admins
+      where shul_admins.shul_id = shuls.id
+      and shul_admins.user_id = auth.uid()
+      and shul_admins.role = 'owner'
+    )
+  );
+
+-- ==================== SHUL ADMINS POLICIES ====================
+create policy "Anyone can view shul admins" on shul_admins
+  for select using (true);
+
+create policy "Authenticated users can become shul admin on insert" on shul_admins
+  for insert with check (auth.uid() = user_id);
+
+create policy "Shul owners can manage admins" on shul_admins
+  for delete using (
+    exists (
+      select 1 from shul_admins sa
+      where sa.shul_id = shul_admins.shul_id
+      and sa.user_id = auth.uid()
+      and sa.role = 'owner'
+    )
+  );
+
+-- ==================== SHUL SCHEDULES POLICIES ====================
+create policy "Anyone can view schedules" on shul_schedules
+  for select using (true);
+
+create policy "Shul admins can create schedules" on shul_schedules
+  for insert with check (
+    exists (
+      select 1 from shul_admins
+      where shul_admins.shul_id = shul_schedules.shul_id
+      and shul_admins.user_id = auth.uid()
+    )
+  );
+
+create policy "Shul admins can update schedules" on shul_schedules
+  for update using (
+    exists (
+      select 1 from shul_admins
+      where shul_admins.shul_id = shul_schedules.shul_id
+      and shul_admins.user_id = auth.uid()
+    )
+  );
+
+create policy "Shul admins can delete schedules" on shul_schedules
+  for delete using (
+    exists (
+      select 1 from shul_admins
+      where shul_admins.shul_id = shul_schedules.shul_id
+      and shul_admins.user_id = auth.uid()
+    )
+  );
+
+-- ==================== SCHEDULE OVERRIDES POLICIES ====================
+create policy "Anyone can view overrides" on schedule_overrides
+  for select using (true);
+
+create policy "Shul admins can create overrides" on schedule_overrides
+  for insert with check (
+    exists (
+      select 1 from shul_admins
+      where shul_admins.shul_id = schedule_overrides.shul_id
+      and shul_admins.user_id = auth.uid()
+    )
+  );
+
+create policy "Shul admins can update overrides" on schedule_overrides
+  for update using (
+    exists (
+      select 1 from shul_admins
+      where shul_admins.shul_id = schedule_overrides.shul_id
+      and shul_admins.user_id = auth.uid()
+    )
+  );
+
+create policy "Shul admins can delete overrides" on schedule_overrides
+  for delete using (
+    exists (
+      select 1 from shul_admins
+      where shul_admins.shul_id = schedule_overrides.shul_id
+      and shul_admins.user_id = auth.uid()
+    )
+  );
 
 -- ==================== FRIENDSHIPS POLICIES ====================
 create policy "Users can view their own friendships" on friendships
