@@ -8,7 +8,7 @@ create extension if not exists "pgcrypto" with schema extensions;
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
-  reliability numeric not null default 0.8,
+  reliability numeric not null default 1.0,
   streak integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
