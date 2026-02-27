@@ -3479,3 +3479,285 @@ input[type="range"]:disabled {
   color: var(--text-muted);
   font-size: 0.85rem;
 }
+
+/* ==========================================================================
+   Shul Dashboard Styles
+   ========================================================================== */
+
+.shul-empty-state {
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+}
+.shul-empty-state .shul-empty-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-3);
+}
+.shul-empty-state h2 {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+.shul-empty-state p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-5);
+  line-height: 1.5;
+}
+
+/* Shul Form */
+.shul-form-field {
+  margin-bottom: var(--space-4);
+}
+.shul-form-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.shul-form-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-3);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.shul-form-input:focus {
+  border-color: var(--accent);
+}
+.shul-form-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+.shul-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+.shul-form-hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--space-3);
+}
+.shul-form-select {
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+/* Day Picker Grid */
+.shul-day-grid {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.shul-day-btn {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.shul-day-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+/* Section Header */
+.shul-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+.shul-add-btn {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: white;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.shul-add-btn:hover {
+  opacity: 0.85;
+}
+
+/* Schedule List */
+.shul-schedule-group {
+  margin-bottom: var(--space-4);
+}
+.shul-schedule-group-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+.shul-schedule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  margin-bottom: var(--space-2);
+}
+.shul-schedule-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.shul-schedule-days {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 70px;
+}
+.shul-schedule-time {
+  font-size: 0.9rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+.shul-schedule-name {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.shul-schedule-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+.shul-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+.shul-action-btn:hover {
+  background: var(--surface);
+}
+
+/* Override List */
+.shul-override-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  margin-bottom: var(--space-2);
+}
+.shul-override-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.shul-override-date {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.shul-override-reason {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+.shul-override-detail {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Empty Section */
+.shul-empty-section {
+  text-align: center;
+  padding: var(--space-4);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Shul Info */
+.shul-info-details {
+  margin-top: var(--space-2);
+}
+.shul-info-address,
+.shul-info-nusach,
+.shul-info-contact {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+.shul-verified-badge {
+  font-size: 0.8rem;
+  margin-left: var(--space-2);
+}
+
+/* Loading */
+.shul-loading {
+  text-align: center;
+  padding: var(--space-6);
+  color: var(--text-muted);
+}
+
+/* Settings link for shul management */
+.settings-shul-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  text-align: left;
+}
+.settings-shul-link:hover {
+  border-color: var(--accent);
+}
+.settings-shul-link .shul-link-icon {
+  font-size: 1.3rem;
+}
+.settings-shul-link .shul-link-text {
+  flex: 1;
+}
+.settings-shul-link .shul-link-desc {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 2px;
+}
+.settings-shul-link .shul-link-arrow {
+  color: var(--text-muted);
+}
+

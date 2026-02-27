@@ -18,6 +18,7 @@ import { useMessages } from "@/hooks/useMessages";
 import { useTheme } from "@/hooks/useTheme";
 import { useFriends } from "@/hooks/useFriends";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
+import { useShul } from "@/hooks/useShul";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppHeader } from "@/components/AppHeader";
 import { ViewBar } from "@/components/ViewBar";
@@ -36,6 +37,7 @@ import { SettingsPage } from "@/components/SettingsPage";
 import { AlertsPage, type Alert } from "@/components/AlertsPage";
 import { FriendsPage } from "@/components/FriendsPage";
 import { UserProfileModal } from "@/components/UserProfileModal";
+import { ShulDashboard } from "@/components/ShulDashboard";
 import type { SpaceMember } from "@/hooks/useSpaces";
 
 export default function Home() {
@@ -77,6 +79,7 @@ export default function Home() {
   const isShabbos = useShabbosMode();
   const { theme, setTheme } = useTheme();
   const { onlineCount } = useOnlineUsers(session?.user?.id);
+  const shulState = useShul(session?.user?.id);
   const {
     friends,
     pendingRequests,
@@ -143,6 +146,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<NavTab>("home");
   const [spaceMembers, setSpaceMembers] = useState<SpaceMember[]>([]);
   const [viewProfileUserId, setViewProfileUserId] = useState<string | null>(null);
+  const [showShulDashboard, setShowShulDashboard] = useState(false);
 
   // ==================== Auth Form State ====================
   const [authMode, setAuthMode] = useState<AuthMode>("signIn");
@@ -454,6 +458,7 @@ export default function Home() {
           onClose={() => setActiveTab("home")}
           onSignOut={handleSignOut}
           onSignIn={() => openModal("auth")}
+          onManageShul={() => setShowShulDashboard(true)}
           theme={theme}
           onThemeChange={setTheme}
         />
@@ -536,6 +541,13 @@ export default function Home() {
           open={viewProfileUserId !== null}
           userId={viewProfileUserId}
           onClose={() => setViewProfileUserId(null)}
+        />
+
+        <ShulDashboard
+          open={showShulDashboard}
+          shulState={shulState}
+          onClose={() => setShowShulDashboard(false)}
+          onToast={pushToast}
         />
 
         <FilterModal
