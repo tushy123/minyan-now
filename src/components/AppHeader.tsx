@@ -1,7 +1,7 @@
 import type { TefillahKey } from "@/lib/types";
 import { TEFILLAH_LABELS } from "@/lib/constants";
 import { CalendarModal } from "./CalendarModal";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function formatDateLabel(dateString: string): string {
   const date = new Date(dateString + "T12:00:00");
@@ -56,6 +56,56 @@ export function AppHeader({
   onlineCount: number;
 }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const lastScrollY = useRef(0);
+  const rafRef = useRef(0);
+  const cooldownRef = useRef(false);
+
+  useEffect(() => {
+    let scrollEl: Element | null = null;
+
+    function onScroll() {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        if (!scrollEl || cooldownRef.current) return;
+        const currentY = scrollEl.scrollTop;
+        const delta = currentY - lastScrollY.current;
+
+        let changed = false;
+        if (currentY <= 10) {
+          // Always force expand when returning to the very top
+          setCollapsed((prev) => { changed = prev; return false; });
+        } else if (delta > 8 && currentY > 40) {
+          // Collapse on downward scroll
+          setCollapsed((prev) => { changed = !prev; return true; });
+        } else if (delta < -20) {
+          // Expand on upward fast scroll
+          setCollapsed((prev) => { changed = prev; return false; });
+        }
+
+        if (changed) {
+          cooldownRef.current = true;
+          setTimeout(() => { cooldownRef.current = false; }, 300);
+        }
+
+        lastScrollY.current = currentY;
+      });
+    }
+
+    const interval = setInterval(() => {
+      scrollEl = document.querySelector(".main-content");
+      if (scrollEl) {
+        clearInterval(interval);
+        scrollEl.addEventListener("scroll", onScroll, { passive: true });
+      }
+    }, 200);
+
+    return () => {
+      clearInterval(interval);
+      cancelAnimationFrame(rafRef.current);
+      if (scrollEl) scrollEl.removeEventListener("scroll", onScroll);
+    };
+  }, []);
 
   const handlePrevDay = () => {
     const date = new Date(selectedDate + "T12:00:00");
@@ -71,110 +121,114 @@ export function AppHeader({
 
   return (
     <>
-    <header className="app-header">
-      <div className="header-top">
-        <div className="header-left">
-          <h1 className="app-title">
-            Minyan Now
-          </h1>
-          {onlineCount > 0 && (
-            <div className="online-users-badge">
-              <span className="online-dot" />
-              {onlineCount} online
+      <header className={`app-header${collapsed ? " header-collapsed" : ""}`}>
+        <div className="header-top">
+          <div className="header-left">
+            <h1 className="app-title">
+              Minyan Now
+            </h1>
+            {onlineCount > 0 && (
+              <div className="online-users-badge">
+                <span className="online-dot" />
+                {onlineCount} online
+              </div>
+            )}
+          </div>
+          <button className="icon-btn" onClick={onProfileClick} aria-label="Profile">
+            {userInitials || (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            )}
+          </button>
+        </div>
+
+        <div className="header-collapsible">
+          <div className="header-collapsible-inner">
+            <div className="date-nav-wrapper">
+              {!isToday && (
+                <button className="go-to-today-btn" onClick={onGoToToday}>
+                  Back to Today
+                </button>
+              )}
+              <div className="date-nav">
+                <button className="date-nav-btn" onClick={handlePrevDay} aria-label="Previous day">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+                <button
+                  className="date-nav-label-btn"
+                  onClick={() => setCalendarOpen(true)}
+                  aria-label="Select date"
+                >
+                  {formatDateLabel(selectedDate)}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </button>
+                <button className="date-nav-btn" onClick={handleNextDay} aria-label="Next day">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          )}
-        </div>
-        <button className="icon-btn" onClick={onProfileClick} aria-label="Profile">
-          {userInitials || (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-          )}
-        </button>
-      </div>
 
-      <div className="date-nav-wrapper">
-        {!isToday && (
-          <button className="go-to-today-btn" onClick={onGoToToday}>
-            Back to Today
-          </button>
-        )}
-        <div className="date-nav">
-          <button className="date-nav-btn" onClick={handlePrevDay} aria-label="Previous day">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <button
-            className="date-nav-label-btn"
-            onClick={() => setCalendarOpen(true)}
-            aria-label="Select date"
-          >
-            {formatDateLabel(selectedDate)}
+            <nav className="prayer-tabs">
+              {(Object.keys(TEFILLAH_LABELS) as TefillahKey[]).map((key) => (
+                <button
+                  key={key}
+                  className={`filter-tab${currentFilter === key ? " active" : ""}`}
+                  onClick={() => onFilterChange(key)}
+                >
+                  {TEFILLAH_LABELS[key]}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="zman-card zman-card-clickable"
+          onClick={onZmanimClick}
+          aria-label="View all zmanim"
+        >
+          <div className="zman-row">
+            <div className="zman-item">
+              <span className="zman-label">Earliest</span>
+              <span className="zman-value">{zmanSummary.earliest}</span>
+            </div>
+            <div className="zman-item">
+              <span className="zman-label">Latest</span>
+              <span className="zman-value">{zmanSummary.latest}</span>
+            </div>
+            <div className="zman-item highlight">
+              <span className="zman-label">Time Left</span>
+              <span className="zman-value">{zmanSummary.hoursLeft}h</span>
+            </div>
+          </div>
+          <div className="zman-card-hint">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
             </svg>
-          </button>
-          <button className="date-nav-btn" onClick={handleNextDay} aria-label="Next day">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <nav className="prayer-tabs">
-        {(Object.keys(TEFILLAH_LABELS) as TefillahKey[]).map((key) => (
-          <button
-            key={key}
-            className={`filter-tab${currentFilter === key ? " active" : ""}`}
-            onClick={() => onFilterChange(key)}
-          >
-            {TEFILLAH_LABELS[key]}
-          </button>
-        ))}
-      </nav>
-
-      <button
-        type="button"
-        className="zman-card zman-card-clickable"
-        onClick={onZmanimClick}
-        aria-label="View all zmanim"
-      >
-        <div className="zman-row">
-          <div className="zman-item">
-            <span className="zman-label">Earliest</span>
-            <span className="zman-value">{zmanSummary.earliest}</span>
+            <span>Tap for all zmanim</span>
           </div>
-          <div className="zman-item">
-            <span className="zman-label">Latest</span>
-            <span className="zman-value">{zmanSummary.latest}</span>
-          </div>
-          <div className="zman-item highlight">
-            <span className="zman-label">Time Left</span>
-            <span className="zman-value">{zmanSummary.hoursLeft}h</span>
-          </div>
-        </div>
-        <div className="zman-card-hint">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-          <span>Tap for all zmanim</span>
-        </div>
-      </button>
-    </header>
+        </button>
+      </header>
 
-    <CalendarModal
-      open={calendarOpen}
-      selectedDate={selectedDate}
-      onSelect={onDateChange}
-      onClose={() => setCalendarOpen(false)}
-    />
+      <CalendarModal
+        open={calendarOpen}
+        selectedDate={selectedDate}
+        onSelect={onDateChange}
+        onClose={() => setCalendarOpen(false)}
+      />
     </>
   );
 }

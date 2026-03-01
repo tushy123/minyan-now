@@ -390,25 +390,26 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className={`app-shell${hasJoinedSpace ? " has-joined" : ""}`} id="app">
-        <AppHeader
-          currentFilter={currentFilter}
-          onFilterChange={setCurrentFilter}
-          onProfileClick={handleProfileClick}
-          onZmanimClick={() => openModal("zmanim")}
-          zmanSummary={zmanSummary}
-          userInitials={session ? createInitials(profile?.full_name) : undefined}
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-          isToday={selectedDate === new Date().toISOString().slice(0, 10)}
-          onGoToToday={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
-          onlineCount={onlineCount}
-        />
-
-        <ViewBar
-          view={view}
-          onViewChange={setView}
-          onFilterClick={() => openModal("filter")}
-        />
+        <div className="top-sticky-area">
+          <AppHeader
+            currentFilter={currentFilter}
+            onFilterChange={setCurrentFilter}
+            onProfileClick={handleProfileClick}
+            onZmanimClick={() => openModal("zmanim")}
+            zmanSummary={zmanSummary}
+            userInitials={session ? createInitials(profile?.full_name) : undefined}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            isToday={selectedDate === new Date().toISOString().slice(0, 10)}
+            onGoToToday={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
+            onlineCount={onlineCount}
+          />
+          <ViewBar
+            view={view}
+            onViewChange={setView}
+            onFilterClick={() => openModal("filter")}
+          />
+        </div>
 
         <main className="main-content">
           <section className={`list-view${view === "list" ? "" : " hidden"}`}>
@@ -434,22 +435,24 @@ export default function Home() {
           </section>
         </main>
 
-        <div className="bottom-actions">
-          <button className="action-btn" onClick={() => openModal("create")}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Create Pop-up Minyan
-          </button>
-        </div>
+        <div className="bottom-sticky-area">
+          <div className="bottom-actions">
+            <button className="action-btn" onClick={() => openModal("create")}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Create Pop-up Minyan
+            </button>
+          </div>
 
-        <BottomNav
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          alertCount={unreadAlertCount}
-          friendRequestCount={friendRequestCount}
-        />
+          <BottomNav
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            alertCount={unreadAlertCount}
+            friendRequestCount={friendRequestCount}
+          />
+        </div>
 
         <SettingsPage
           open={activeTab === "settings"}
