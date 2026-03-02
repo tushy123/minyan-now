@@ -190,7 +190,17 @@ export function useSpaces(userId?: string) {
       if (error && !duplicate) {
         return { error, duplicate: false };
       }
+      // Optimistically bump quorum_count so the UI updates instantly
+      if (!duplicate) {
+        setSpaces((prev) =>
+          prev.map((s) =>
+            s.id === spaceId ? { ...s, quorum_count: s.quorum_count + 1 } : s
+          )
+        );
+      }
       await refreshMemberships();
+      // Small delay so the DB trigger finishes updating quorum_count
+      await new Promise((r) => setTimeout(r, 300));
       await refreshSpaces();
       return { error: null, duplicate: duplicate ?? false };
     },
@@ -206,7 +216,16 @@ export function useSpaces(userId?: string) {
       if (error) {
         return { error };
       }
+      // Optimistically decrement quorum_count
+      setSpaces((prev) =>
+        prev.map((s) =>
+          s.id === spaceId
+            ? { ...s, quorum_count: Math.max(0, s.quorum_count - 1) }
+            : s
+        )
+      );
       await refreshMemberships();
+      await new Promise((r) => setTimeout(r, 300));
       await refreshSpaces();
       return { error: null };
     },
