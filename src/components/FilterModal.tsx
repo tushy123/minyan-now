@@ -19,6 +19,19 @@ export function FilterModal({
   onSortChange: (value: "closest" | "soonest" | "fullest" | "reliable") => void;
   onDistanceChange: (value: number) => void;
 }) {
+  const showOptions: { value: "all" | "space" | "set"; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: "set", label: "Official" },
+    { value: "space", label: "Pop-up" },
+  ];
+
+  const sortOptions: { value: "closest" | "soonest" | "fullest" | "reliable"; label: string }[] = [
+    { value: "closest", label: "Closest" },
+    { value: "soonest", label: "Soonest" },
+    { value: "fullest", label: "Most Full" },
+    { value: "reliable", label: "Reliable" },
+  ];
+
   return (
     <div className={`modal${open ? " active" : ""}`}>
       <div className="modal-content filter-modal">
@@ -29,38 +42,43 @@ export function FilterModal({
           </button>
         </div>
         <div className="form-group">
-          <label htmlFor="filterType">Show</label>
-          <select
-            id="filterType"
-            value={filterType}
-            onChange={(event) => onFilterTypeChange(event.target.value as typeof filterType)}
-          >
-            <option value="all">All minyanim</option>
-            <option value="set">Official minyanim only</option>
-            <option value="space">Pop-up minyanim only</option>
-          </select>
+          <label>Show</label>
+          <div className="filter-presets">
+            {showOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`filter-preset-btn${filterType === opt.value ? " active" : ""}`}
+                onClick={() => onFilterTypeChange(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="form-group">
-          <label htmlFor="sortBy">Sort by</label>
-          <select
-            id="sortBy"
-            value={sortBy}
-            onChange={(event) => onSortChange(event.target.value as typeof sortBy)}
-          >
-            <option value="closest">Closest</option>
-            <option value="soonest">Soonest time</option>
-            <option value="fullest">Most full</option>
-            <option value="reliable">Most reliable</option>
-          </select>
+          <label>Sort by</label>
+          <div className="filter-presets">
+            {sortOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`filter-preset-btn${sortBy === opt.value ? " active" : ""}`}
+                onClick={() => onSortChange(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="form-group">
           <label>Max distance</label>
-          <div className="distance-presets">
+          <div className="filter-presets">
             {([1, 5, 10, 25, 50, Infinity] as number[]).map((value) => (
               <button
                 key={value}
                 type="button"
-                className={`distance-preset-btn${maxDistance === value ? " active" : ""}`}
+                className={`filter-preset-btn${maxDistance === value ? " active" : ""}`}
                 onClick={() => onDistanceChange(value)}
               >
                 {value === Infinity ? "Unlimited" : `${value} mi`}
