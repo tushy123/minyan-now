@@ -79,7 +79,6 @@ export type UpdateSpaceInput = z.infer<typeof updateSpaceSchema>;
 
 export const joinSpaceSchema = z.object({
   spaceId: z.string().uuid("Invalid space ID"),
-  userId: z.string().uuid("Invalid user ID"),
 });
 
 export const leaveSpaceSchema = z.object({

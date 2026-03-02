@@ -50,53 +50,43 @@ export async function fetchSpaceMembers(spaceId: string): Promise<{
 }
 
 export async function joinSpace(
-  spaceId: string,
-  userId: string
+  spaceId: string
 ): Promise<MembershipResult> {
   if (!supabase) {
     return { error: "Supabase is not configured.", code: null };
   }
 
   // Validate input
-  const validation = validateInput(joinSpaceSchema, { spaceId, userId });
+  const validation = validateInput(joinSpaceSchema, { spaceId });
   if (!validation.success) {
     return { error: validation.error, code: "VALIDATION_ERROR" };
   }
 
-  // Check if space exists and has capacity
-  const { data: space, error: spaceError } = await supabase
-    .from("spaces")
-    .select("capacity, quorum_count, status")
-    .eq("id", spaceId)
-    .single();
+  const { data, error } = await supabase.rpc("join_space_atomic", {
+    p_space_id: validation.data.spaceId,
+  });
 
-  if (spaceError || !space) {
-    return { error: "Space not found.", code: "NOT_FOUND" };
+  if (error) {
+    console.error("[joinSpace] RPC error:", error.message);
+    return { error: "Unable to join right now. Please try again.", code: error.code };
   }
 
-  if (space.status !== "OPEN") {
-    return { error: "This space is no longer accepting members.", code: "SPACE_CLOSED" };
+  switch (data) {
+    case "OK":
+      return { error: null, code: null };
+    case "ALREADY_JOINED":
+      return { error: "You have already joined this space.", code: "23505", duplicate: true };
+    case "NOT_FOUND":
+      return { error: "Space not found.", code: "NOT_FOUND" };
+    case "SPACE_CLOSED":
+      return { error: "This space is no longer accepting members.", code: "SPACE_CLOSED" };
+    case "SPACE_FULL":
+      return { error: "This space is full.", code: "SPACE_FULL" };
+    case "NOT_AUTHENTICATED":
+      return { error: "Please sign in.", code: "NOT_AUTHENTICATED" };
+    default:
+      return { error: "Unable to join right now. Please try again.", code: "UNKNOWN" };
   }
-
-  if (space.quorum_count >= space.capacity) {
-    return { error: "This space is full.", code: "SPACE_FULL" };
-  }
-
-  const { error } = await supabase
-    .from("space_members")
-    .insert({ space_id: spaceId, user_id: userId });
-
-  if (!error) {
-    return { error: null, code: null };
-  }
-
-  // Check for duplicate membership
-  if (error.code === "23505") {
-    return { error: "You have already joined this space.", code: error.code, duplicate: true };
-  }
-
-  console.error("[joinSpace] Error:", error.message);
-  return { error: error.message, code: error.code };
 }
 
 export async function leaveSpace(

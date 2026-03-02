@@ -363,19 +363,13 @@ export async function fetchProfileById(userId: string): Promise<{
 export async function updateUserPresence(): Promise<void> {
   if (!supabase || !isSupabaseConfigured) return;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-
-  await supabase.rpc("update_user_presence", { p_user_id: user.id });
+  await supabase.rpc("update_user_presence");
 }
 
 export async function setUserOffline(): Promise<void> {
   if (!supabase || !isSupabaseConfigured) return;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-
-  await supabase.rpc("set_user_offline", { p_user_id: user.id });
+  await supabase.rpc("set_user_offline");
 }
 
 export async function getOnlineUserCount(): Promise<number> {

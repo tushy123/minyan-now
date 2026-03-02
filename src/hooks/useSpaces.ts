@@ -186,7 +186,7 @@ export function useSpaces(userId?: string) {
       if (!userId) {
         return { error: "Please sign in.", duplicate: false };
       }
-      const { error, code, duplicate } = await joinSpace(spaceId, userId);
+      const { error, duplicate } = await joinSpace(spaceId);
       if (error && !duplicate) {
         return { error, duplicate: false };
       }
