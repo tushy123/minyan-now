@@ -210,7 +210,7 @@ export function AppHeader({
             </div>
             <div className="zman-item highlight">
               <span className="zman-label">Time Left</span>
-              <span className="zman-value">{zmanSummary.hoursLeft}h</span>
+              <span className="zman-value">{zmanSummary.hoursLeft}</span>
             </div>
           </div>
           <div className="zman-card-hint">

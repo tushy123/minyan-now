@@ -28,6 +28,9 @@ function setCenterWithPadding(
 
 /** Measure how much of the map is obscured by header/footer overlays */
 function getMapPadding(): [number, number] {
+  // On desktop, map is in its own column — not overlaid
+  if (window.innerWidth >= 1024) return [0, 0];
+
   const header = document.querySelector(".app-header");
   const viewBar = document.querySelector(".view-bar");
   const bottomSticky = document.querySelector(".bottom-sticky-area");
@@ -249,6 +252,14 @@ export function MapView({
       setTimeout(() => mapRef.current.invalidateSize(), 150);
     }
   }, [isVisible]);
+
+  // Redraw map on window resize (handles crossing the desktop breakpoint)
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const handleResize = () => mapRef.current?.invalidateSize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (!mapRef.current || !userLocation) return;

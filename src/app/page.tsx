@@ -132,11 +132,21 @@ export default function Home() {
     send: sendChatMessage,
   } = useMessages(
     minyanPage.selected?.type === "space" ? minyanPage.selected.id : null,
-    session?.user?.id
+    session?.user?.id,
+    profile?.full_name ?? undefined
   );
 
   // ==================== View State ====================
   const [view, setView] = useState<"list" | "map">("list");
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const unreadAlertCount = useMemo(
@@ -234,7 +244,9 @@ export default function Home() {
     return {
       earliest: zmanLabel.start,
       latest: zmanLabel.end,
-      hoursLeft: (minutesLeft / 60).toFixed(2),
+      hoursLeft: minutesLeft >= 60
+        ? `${Math.floor(minutesLeft / 60)}h ${minutesLeft % 60}m`
+        : `${minutesLeft}m`,
     };
   }, [zmanWindow.start, zmanWindow.end, zmanLabel.start, zmanLabel.end]);
 
@@ -275,7 +287,17 @@ export default function Home() {
       setCreateError(null);
       setCreateLoading(true);
 
-      const startDate = dateFromMinutes(new Date(), draft.startMinutes);
+      const [year, month, day] = selectedDate.split("-").map((value) => Number.parseInt(value, 10));
+      if (!year || !month || !day) {
+        setCreateError("Invalid selected date.");
+        setCreateLoading(false);
+        return;
+      }
+
+      const startDate = dateFromMinutes(
+        new Date(year, month - 1, day),
+        draft.startMinutes
+      );
 
       const result = await createNewSpace({
         tefillah: TEFILLAH_TO_DB[draft.tefillah],
@@ -308,6 +330,7 @@ export default function Home() {
     [
       session?.user,
       draft,
+      selectedDate,
       zmanWindows,
       userLocation,
       createNewSpace,
@@ -429,7 +452,7 @@ export default function Home() {
             <MapView
               items={sortedItems}
               userLocation={userLocation}
-              isVisible={view === "map"}
+              isVisible={isDesktop || view === "map"}
               onSelect={detailSheet.select}
             />
           </section>

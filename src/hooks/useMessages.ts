@@ -6,7 +6,7 @@ import {
   type SpaceMessage,
 } from "@/services/supabase/messages";
 
-export function useMessages(spaceId: string | null, userId?: string) {
+export function useMessages(spaceId: string | null, userId?: string, userName?: string) {
   const [messages, setMessages] = useState<SpaceMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +44,18 @@ export function useMessages(spaceId: string | null, userId?: string) {
         if (prev.some((m) => m.id === newMessage.id)) {
           return prev;
         }
+        // Replace optimistic message from the same user with real one
+        const optimisticIdx = prev.findIndex(
+          (m) =>
+            m.id.startsWith("optimistic-") &&
+            m.userId === newMessage.userId &&
+            m.text === newMessage.text
+        );
+        if (optimisticIdx !== -1) {
+          const updated = [...prev];
+          updated[optimisticIdx] = newMessage;
+          return updated;
+        }
         return [...prev, newMessage];
       });
     });
@@ -60,26 +72,38 @@ export function useMessages(spaceId: string | null, userId?: string) {
       }
 
       setError(null);
+
+      // Optimistic message — shows instantly in the chat
+      const tempId = `optimistic-${Date.now()}`;
+      const optimistic: SpaceMessage = {
+        id: tempId,
+        spaceId,
+        userId,
+        senderName: userName ?? "You",
+        text,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimistic]);
+
       const result = await sendMessage(spaceId, userId, text);
 
       if (result.error) {
+        // Remove the optimistic message on failure
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
         setError(result.error);
         return { error: result.error };
       }
 
-      // Add message optimistically (real-time will also add it, but we dedupe)
+      // Replace the optimistic message with the real one
       if (result.data) {
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === result.data!.id)) {
-            return prev;
-          }
-          return [...prev, result.data!];
-        });
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? result.data! : m))
+        );
       }
 
       return { error: null };
     },
-    [spaceId, userId]
+    [spaceId, userId, userName]
   );
 
   const clearMessages = useCallback(() => {

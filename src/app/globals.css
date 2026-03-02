@@ -4074,3 +4074,140 @@ input[type="range"]:disabled {
   color: white;
   border-color: var(--accent);
 }
+
+/* ==========================================================================
+   Desktop Responsive Layout (≥1024px)
+   ========================================================================== */
+
+@media (min-width: 1024px) {
+  /* Remove the phone-in-browser container */
+  .app-shell {
+    max-width: none;
+    border-left: none;
+    border-right: none;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 1fr;
+  }
+
+  /* Header: in normal flow, no longer absolute */
+  .top-sticky-area {
+    position: relative;
+    pointer-events: auto;
+  }
+
+  /* Keep header always expanded on desktop */
+  .header-collapsed .header-collapsible {
+    grid-template-rows: 1fr;
+  }
+
+  .header-collapsed .header-collapsible-inner {
+    opacity: 1;
+  }
+
+  /* Hide list/map toggle — both views always visible */
+  .view-bar .view-toggle {
+    display: none;
+  }
+
+  /* Main content: side-by-side grid */
+  .main-content {
+    display: grid;
+    grid-template-columns: 1fr minmax(300px, 400px);
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+
+  /* List: scrollable left column with 2-col card grid */
+  .list-view {
+    overflow-y: auto;
+    max-height: 100%;
+    padding: var(--space-4);
+    border-right: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    align-content: start;
+  }
+
+  /* Force both views visible, override .hidden toggle */
+  .list-view.hidden,
+  .map-view.hidden {
+    display: flex !important;
+  }
+
+  /* Map: in-flow right column, no longer absolute fullscreen */
+  .map-view {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    padding-bottom: 0;
+    min-height: 0;
+  }
+
+  /* Map container fills its column cleanly */
+  .map-container {
+    border-radius: 0;
+    border: none;
+  }
+
+  .map-shell {
+    height: 100%;
+  }
+
+  /* Bottom area: in normal flow, no longer absolute */
+  .bottom-sticky-area {
+    position: relative;
+    pointer-events: auto;
+  }
+
+  .bottom-nav {
+    width: 100%;
+  }
+
+  /* Cards don't stretch to match tallest in row */
+  .minyan-card {
+    max-width: none;
+    align-self: start;
+  }
+
+  /* Full-page overlays: full width with centered content on desktop */
+  .minyan-page,
+  .settings-page,
+  .alerts-page,
+  .friends-page {
+    /* Keep inset: 0 fullscreen backdrop */
+  }
+
+  .minyan-page-content,
+  .settings-content,
+  .alerts-content,
+  .friends-content {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .minyan-page-header,
+  .settings-header,
+  .alerts-header,
+  .friends-header {
+    padding-left: calc((100% - 600px) / 2 + var(--space-4));
+    padding-right: calc((100% - 600px) / 2 + var(--space-4));
+  }
+
+  /* Bottom sheet: centered dialog on desktop */
+  .bottom-sheet {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sheet-content {
+    max-width: 480px;
+    border-radius: var(--radius-xl);
+    border-bottom: 1px solid var(--border);
+    max-height: 80vh;
+  }
+}
