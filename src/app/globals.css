@@ -4189,14 +4189,6 @@ input[type="range"]:disabled {
     pointer-events: auto;
   }
 
-  /* Keep header always expanded on desktop */
-  .header-collapsed .header-collapsible {
-    grid-template-rows: 1fr;
-  }
-
-  .header-collapsed .header-collapsible-inner {
-    opacity: 1;
-  }
 
   /* Hide list/map toggle — both views always visible */
   .view-bar .view-toggle {

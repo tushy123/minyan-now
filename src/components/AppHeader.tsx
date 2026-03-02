@@ -93,7 +93,12 @@ export function AppHeader({
     }
 
     const interval = setInterval(() => {
-      scrollEl = document.querySelector(".main-content");
+      const isDesktop = window.innerWidth >= 1024;
+      const listView = document.querySelector(".list-view");
+      const mainContent = document.querySelector(".main-content");
+      // On desktop, .main-content has overflow:hidden — .list-view is the
+      // scrollable container. On mobile, .main-content scrolls.
+      scrollEl = isDesktop && listView ? listView : mainContent;
       if (scrollEl) {
         clearInterval(interval);
         scrollEl.addEventListener("scroll", onScroll, { passive: true });
