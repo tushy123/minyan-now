@@ -66,7 +66,15 @@ export default function Home() {
   } = useSpaces(session?.user?.id);
 
   const { toasts, pushToast } = useToasts();
-  const { location: userLocation, permissionState, requestLocation } = useLocation((message) => pushToast(message, "warning"));
+  const {
+    location: userLocation,
+    permissionState,
+    requestLocation,
+    resolveManualLocation,
+    manualLocationLoading,
+    manualLocationError,
+    clearManualLocationError,
+  } = useLocation((message) => pushToast(message, "warning"));
   const origin = userLocation ?? DEFAULT_CENTER;
 
   // Date navigation state
@@ -163,6 +171,7 @@ export default function Home() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authName, setAuthName] = useState("");
+  const [manualLocationInput, setManualLocationInput] = useState("");
 
   // ==================== Create Space State ====================
   const [createError, setCreateError] = useState<string | null>(null);
@@ -401,6 +410,18 @@ export default function Home() {
     closeModal("profile");
   }, [signOut, closeModal]);
 
+  const handleManualLocationSubmit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const success = await resolveManualLocation(manualLocationInput);
+      if (!success) return;
+
+      pushToast("Location set from address/ZIP.", "success");
+      setManualLocationInput("");
+    },
+    [manualLocationInput, resolveManualLocation, pushToast]
+  );
+
   const handleProfileClick = useCallback(() => {
     if (session) {
       openModal("profile");
@@ -627,17 +648,43 @@ export default function Home() {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
-              <span>Enable location to see nearby minyanim</span>
+              <span>Enable location, or enter a ZIP/address to find nearby minyanim.</span>
             </div>
-            <button
-              className="location-banner-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                requestLocation();
-              }}
-            >
-              Enable
-            </button>
+            <div className="location-banner-actions">
+              <button
+                className="location-banner-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  requestLocation();
+                }}
+              >
+                Enable
+              </button>
+
+              <form className="location-manual-form" onSubmit={handleManualLocationSubmit}>
+                <input
+                  className="location-manual-input"
+                  type="text"
+                  value={manualLocationInput}
+                  onChange={(event) => {
+                    setManualLocationInput(event.target.value);
+                    if (manualLocationError) clearManualLocationError();
+                  }}
+                  placeholder="ZIP or address"
+                  autoComplete="street-address"
+                />
+                <button
+                  className="location-manual-btn"
+                  type="submit"
+                  disabled={manualLocationLoading}
+                >
+                  {manualLocationLoading ? "Finding..." : "Use"}
+                </button>
+              </form>
+              {manualLocationError && (
+                <div className="location-manual-error">{manualLocationError}</div>
+              )}
+            </div>
           </div>
         )}
 

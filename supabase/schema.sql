@@ -351,25 +351,25 @@ create policy "Rate limits can be inserted by authenticated users" on rate_limit
 create or replace function sync_space_quorum_insert()
 returns trigger as $$
 begin
-  update spaces
-  set quorum_count = (select count(*) from space_members where space_id = new.space_id),
+  update public.spaces
+  set quorum_count = (select count(*) from public.space_members where space_id = new.space_id),
       updated_at = now()
   where id = new.space_id;
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer set search_path = public;
 
 -- Sync quorum count on member delete
 create or replace function sync_space_quorum_delete()
 returns trigger as $$
 begin
-  update spaces
-  set quorum_count = (select count(*) from space_members where space_id = old.space_id),
+  update public.spaces
+  set quorum_count = (select count(*) from public.space_members where space_id = old.space_id),
       updated_at = now()
   where id = old.space_id;
   return old;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists space_members_insert on space_members;
 create trigger space_members_insert
