@@ -1,6 +1,29 @@
-import type { UiItem, UiSpace } from "@/lib/types";
+"use client";
+
+import { useState, useCallback } from "react";
+import type { UiItem, UiSet, UiSpace, ShulSchedule, DayKey } from "@/lib/types";
 import { TEFILLAH_LABELS } from "@/lib/constants";
 import { MiniMap } from "./MiniMap";
+import { fetchShulSchedules } from "@/services/supabase/shuls";
+
+const DAY_SHORT: Record<DayKey, string> = {
+  sun: "Sun",
+  mon: "Mon",
+  tue: "Tue",
+  wed: "Wed",
+  thu: "Thu",
+  fri: "Fri",
+  shabbat: "Shabbat",
+};
+
+function formatDays(days: DayKey[]): string {
+  if (days.length === 7) return "Daily";
+  if (days.length === 5 && !days.includes("shabbat") && !days.includes("sun")) return "Mon\u2013Fri";
+  if (days.length === 6 && !days.includes("shabbat")) return "Sun\u2013Fri";
+  return days.map((d) => DAY_SHORT[d] ?? d).join(", ");
+}
+
+type ScheduleCache = Record<string, { loading: boolean; schedules: ShulSchedule[] }>;
 
 export function MinyanList({
   items,
@@ -21,6 +44,35 @@ export function MinyanList({
   onLeave: (spaceId: string) => void;
   onDirections: (item: UiItem) => void;
 }) {
+  const [detailsOpen, setDetailsOpen] = useState<string | null>(null);
+  const [scheduleCache, setScheduleCache] = useState<ScheduleCache>({});
+
+  const handleDetails = useCallback(
+    async (item: UiSet) => {
+      if (detailsOpen === item.id) {
+        setDetailsOpen(null);
+        return;
+      }
+
+      setDetailsOpen(item.id);
+
+      if (!item.shul_id || scheduleCache[item.shul_id]) return;
+
+      setScheduleCache((prev) => ({
+        ...prev,
+        [item.shul_id!]: { loading: true, schedules: [] },
+      }));
+
+      const schedules = await fetchShulSchedules(item.shul_id);
+
+      setScheduleCache((prev) => ({
+        ...prev,
+        [item.shul_id!]: { loading: false, schedules },
+      }));
+    },
+    [detailsOpen, scheduleCache]
+  );
+
   if (items.length === 0) {
     return <p className="empty-state">No minyanim yet for this time. Try another tab.</p>;
   }
@@ -37,6 +89,10 @@ export function MinyanList({
           : `Hosted by ${(item as UiSpace).hostName}`;
         const notes = !isOfficial && (item as UiSpace).notes ? (item as UiSpace).notes : "";
         const reliability = isOfficial && item.reliability;
+
+        const hasShulId = isOfficial && !!(item as UiSet).shul_id;
+        const isDetailsOpen = detailsOpen === item.id;
+        const cached = hasShulId ? scheduleCache[(item as UiSet).shul_id!] : null;
 
         const cardClasses = [
           "minyan-card",
@@ -119,20 +175,82 @@ export function MinyanList({
                 )}
               </div>
 
+              {/* Inline Schedule (Details) */}
+              {isDetailsOpen && hasShulId && (
+                <div className="card-schedule">
+                  {cached?.loading ? (
+                    <p className="card-schedule-loading">Loading schedule...</p>
+                  ) : cached?.schedules && cached.schedules.length > 0 ? (
+                    (() => {
+                      const grouped: Record<string, ShulSchedule[]> = {};
+                      for (const s of cached.schedules) {
+                        const key = s.tefillah;
+                        if (!grouped[key]) grouped[key] = [];
+                        grouped[key].push(s);
+                      }
+                      const order = ["SHACHARIS", "MINCHA", "MAARIV"] as const;
+                      return (
+                        <>
+                          <h4 className="card-schedule-title">Weekly Schedule</h4>
+                          {order.map((tef) => {
+                            const group = grouped[tef];
+                            if (!group) return null;
+                            const label = TEFILLAH_LABELS[tef.toLowerCase() as keyof typeof TEFILLAH_LABELS];
+                            return (
+                              <div key={tef} className="card-schedule-group">
+                                <span className="card-schedule-tefillah">{label}</span>
+                                {group.map((s) => (
+                                  <div key={s.id} className="card-schedule-row">
+                                    <span className="card-schedule-days">{formatDays(s.days)}</span>
+                                    <span className="card-schedule-time">{s.start_time}</span>
+                                    {s.name && <span className="card-schedule-name">{s.name}</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                        </>
+                      );
+                    })()
+                  ) : (
+                    <p className="card-schedule-empty">No schedule available.</p>
+                  )}
+                </div>
+              )}
+
               <div className="card-actions">
                 {isOfficial ? (
-                  <button
-                    className="btn btn-primary btn-block"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onDirections(item);
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                    </svg>
-                    Get Directions
-                  </button>
+                  <>
+                    {hasShulId && (
+                      <button
+                        className={`btn ${isDetailsOpen ? "btn-primary" : "btn-secondary"} btn-block`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDetails(item as UiSet);
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                          <line x1="16" y1="2" x2="16" y2="6" />
+                          <line x1="8" y1="2" x2="8" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        {isDetailsOpen ? "Hide Details" : "Details"}
+                      </button>
+                    )}
+                    <button
+                      className="btn btn-primary btn-block"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDirections(item);
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                      </svg>
+                      Get Directions
+                    </button>
+                  </>
                 ) : isJoined ? (
                   <>
                     <button

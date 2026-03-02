@@ -97,6 +97,7 @@ export function useMinyanim({
         capacity: 10,
         shulName: minyan.shulName,
         reliability: minyan.reliability,
+        shul_id: minyan.shul_id,
       };
     });
   }, [officialMinyanim, origin]);

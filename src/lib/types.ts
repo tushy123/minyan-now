@@ -38,6 +38,7 @@ export type OfficialMinyan = {
   reliability: number;
   members: number;
   startTime: string;
+  shul_id?: string;
 };
 
 export type UiBase = {
@@ -67,6 +68,7 @@ export type UiSet = UiBase & {
   type: "set";
   shulName: string;
   reliability?: number;
+  shul_id?: string;
 };
 
 export type UiItem = UiSpace | UiSet;

@@ -4,6 +4,45 @@ import { useEffect, useRef } from "react";
 import type { UiItem } from "@/lib/types";
 import { DEFAULT_CENTER, TEFILLAH_LABELS } from "@/lib/constants";
 
+/**
+ * Set the map view so the desired center appears in the middle of
+ * the visible area (between header and bottom button), not the
+ * middle of the full-screen map container.
+ */
+function setCenterWithPadding(
+  map: any,
+  center: { lat: number; lng: number },
+  zoom: number,
+  animate = false,
+) {
+  const [topPad, bottomPad] = getMapPadding();
+  // Offset = half the difference between top and bottom overlays
+  // Positive = shift map center downward (header is taller than footer)
+  const yOffset = (topPad - bottomPad) / 2;
+
+  map.setView([center.lat, center.lng], zoom, { animate });
+  if (yOffset !== 0) {
+    map.panBy([0, -yOffset], { animate });
+  }
+}
+
+/** Measure how much of the map is obscured by header/footer overlays */
+function getMapPadding(): [number, number] {
+  const header = document.querySelector(".app-header");
+  const viewBar = document.querySelector(".view-bar");
+  const bottomSticky = document.querySelector(".bottom-sticky-area");
+
+  const topPad =
+    (header ? header.getBoundingClientRect().bottom : 0) +
+    (viewBar ? viewBar.getBoundingClientRect().height : 0);
+
+  const bottomPad = bottomSticky
+    ? window.innerHeight - bottomSticky.getBoundingClientRect().top
+    : 0;
+
+  return [topPad, bottomPad];
+}
+
 export function MapView({
   items,
   userLocation,
@@ -24,9 +63,8 @@ export function MapView({
   const handleRecenter = () => {
     if (!mapRef.current) return;
     const center = userLocation ?? DEFAULT_CENTER;
-    mapRef.current.setView([center.lat, center.lng], userLocation ? 15 : 13, {
-      animate: true,
-    });
+    const zoom = userLocation ? 15 : 13;
+    setCenterWithPadding(mapRef.current, center, zoom, true);
   };
 
   useEffect(() => {
@@ -41,12 +79,17 @@ export function MapView({
 
       if (!mapRef.current) {
         const initialCenter = userLocation ?? DEFAULT_CENTER;
+        const initialZoom = userLocation ? 15 : 13;
         mapRef.current = L.map(mapContainerRef.current, {
-          zoomControl: false, // We'll add custom zoom controls
-        }).setView(
-          [initialCenter.lat, initialCenter.lng],
-          userLocation ? 15 : 13,
-        );
+          zoomControl: false,
+        }).setView([initialCenter.lat, initialCenter.lng], initialZoom);
+
+        // Offset center into visible area after first render
+        requestAnimationFrame(() => {
+          if (mapRef.current) {
+            setCenterWithPadding(mapRef.current, initialCenter, initialZoom);
+          }
+        });
 
         // CartoDB Dark Matter - free dark-themed tiles
         L.tileLayer(
@@ -212,7 +255,7 @@ export function MapView({
     const key = `${userLocation.lat.toFixed(5)}:${userLocation.lng.toFixed(5)}`;
     if (lastLocationRef.current === key) return;
     lastLocationRef.current = key;
-    mapRef.current.setView([userLocation.lat, userLocation.lng], 15);
+    setCenterWithPadding(mapRef.current, userLocation, 15, true);
   }, [userLocation]);
 
   return (

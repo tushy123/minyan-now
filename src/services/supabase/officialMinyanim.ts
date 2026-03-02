@@ -76,6 +76,7 @@ export async function fetchOfficialMinyanim(): Promise<OfficialMinyan[]> {
               reliability: 95,
               members: 10,
               startTime: override.new_time as string,
+              shul_id: shulId,
             });
             continue;
           }
@@ -93,6 +94,7 @@ export async function fetchOfficialMinyanim(): Promise<OfficialMinyan[]> {
           reliability: 95,
           members: 10,
           startTime: row.start_time as string,
+          shul_id: shulId,
         });
       }
 
@@ -115,6 +117,7 @@ export async function fetchOfficialMinyanim(): Promise<OfficialMinyan[]> {
             reliability: 95,
             members: 10,
             startTime: added.new_time as string,
+            shul_id: added.shul_id as string,
           });
         }
       }
